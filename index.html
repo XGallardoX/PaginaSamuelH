@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Lab: Imágenes, Sonidos y Posturas</title>
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- TensorFlow.js (única dependencia externa obligatoria) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.21.0/dist/tf.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-main">
+        <div>
+          <h1>AI Lab: Imágenes, Sonidos y Posturas</h1>
+          <p class="header-subtitle">
+            Laboratorio de IA multimodal para estudiantes de
+            <span class="brand">IA-VISION-CODERS</span>:
+            conecta modelos de cámara y micrófono a una web interactiva.
+          </p>
+        </div>
+        <div class="header-badges">
+          <span class="badge badge-outline">100% en el navegador</span>
+          <span class="badge badge-outline">TensorFlow.js</span>
+          <span class="badge badge-outline">Demo educativa</span>
+        </div>
+      </div>
+
+      <nav class="mode-tabs">
+        <button class="tab-button active" data-mode="images">
+          Imágenes
+        </button>
+        <button class="tab-button" data-mode="audio">
+          Sonidos
+        </button>
+        <button class="tab-button" data-mode="postures">
+          Posturas
+        </button>
+      </nav>
+    </header>
+
+    <main class="app-main">
+      <!-- MODO: IMÁGENES -->
+      <section id="mode-images" class="mode-panel active">
+        <div class="mode-layout">
+          <!-- Columna izquierda: entrada -->
+          <div class="column column-left">
+            <div class="card io-card">
+              <div class="card-header">
+                <h2>Imágenes – Accesorios en el rostro</h2>
+                <p class="card-subtitle">
+                  Usa la webcam o sube una imagen para detectar capucha, tapabocas, gafas o sin accesorios.
+                </p>
+              </div>
+
+              <div class="io-body">
+                <div class="video-wrapper">
+                  <video id="images-video" autoplay playsinline muted></video>
+                  <canvas id="images-canvas"></canvas>
+                  <div class="video-label">Webcam</div>
+                </div>
+
+                <div class="io-actions">
+                  <button id="images-start-btn" class="btn btn-primary">
+                    Iniciar
+                  </button>
+                  <button id="images-stop-btn" class="btn">
+                    Detener
+                  </button>
+
+                  <label class="btn btn-ghost">
+                    Subir imagen
+                    <input
+                      type="file"
+                      id="images-upload"
+                      accept="image/*"
+                      hidden
+                    />
+                  </label>
+                </div>
+
+                <p class="latency" id="images-latency">
+                  Latencia estimada: -- ms
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna derecha: salida -->
+          <div class="column column-right">
+            <div class="card predictions-card">
+              <h3>Predicción Top-1</h3>
+              <div class="top1">
+                <span id="images-top1-label" class="top1-label">–</span>
+                <span id="images-top1-percent" class="top1-percent">– %</span>
+              </div>
+            </div>
+
+            <div class="card predictions-card">
+              <h3>Top-3 clases</h3>
+              <div id="images-top3-list" class="top3-list">
+                <!-- Se rellena dinámicamente desde app.js -->
+              </div>
+            </div>
+
+            <div class="card about-card">
+              <div class="about-header">
+                <h3>Acerca del modelo</h3>
+                <div class="badges">
+                  <span class="badge badge-teachable">Teachable Machine</span>
+                  <span class="badge badge-input">Webcam</span>
+                  <span class="badge badge-input">Archivo de ejemplo</span>
+                </div>
+              </div>
+              <p>
+                Este es un modelo de clasificación de <strong>visión por computador</strong> que recibe
+                como entrada la cámara o una imagen subida por el usuario. Fue entrenado con ejemplos reales
+                de estudiantes para clasificar si una persona tiene <strong>capucha</strong>, <strong>tapabocas</strong>,
+                <strong>gafas</strong> o <strong>ningún accesorio</strong>.
+              </p>
+              <p>
+                El modelo se entrenó principalmente en <strong>Teachable Machine</strong> y luego se exportó
+                a <strong>TensorFlow.js</strong> para ejecutarse directamente en el navegador, sin enviar
+                las imágenes a ningún servidor.
+              </p>
+              <p>
+                Como toda IA, tiene limitaciones: puede fallar con <strong>mala iluminación</strong>,
+                <strong>cámaras de baja calidad</strong> o cuando la cara está muy girada o parcialmente
+                oculta. Aun así, es ideal como prototipo educativo para seguridad o control de accesorios
+                en entornos escolares.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODO: AUDIO -->
+      <section id="mode-audio" class="mode-panel">
+        <div class="mode-layout">
+          <!-- Columna izquierda: entrada -->
+          <div class="column column-left">
+            <div class="card io-card">
+              <div class="card-header">
+                <h2>Sonidos – Idioma predominante</h2>
+                <p class="card-subtitle">
+                  Graba audio o sube un archivo para estimar si se habla inglés, francés, español o ruso.
+                </p>
+              </div>
+
+              <div class="io-body">
+                <div class="audio-visual">
+                  <div class="audio-wave-placeholder">
+                    🎧
+                  </div>
+                  <p class="audio-help">
+                    Conecta tu micrófono, presiona <strong>Grabar</strong> y habla unos segundos
+                    en el idioma que quieras probar. También puedes subir un archivo .wav/.mp3.
+                  </p>
+
+<!-- Audio grabado -->
+<div id="audio-playback-container" class="audio-playback hidden">
+  <p class="audio-recorded-label">Audio grabado:</p>
+  <audio id="audio-playback" controls></audio>
+</div>
+
+                </div>
+
+                <div class="io-actions">
+                  <button id="audio-record-btn" class="btn btn-primary">
+                    Grabar
+                  </button>
+                  <button id="audio-stop-btn" class="btn">
+                    Detener
+                  </button>
+
+                  <label class="btn btn-ghost">
+                    Subir audio
+                    <input
+                      type="file"
+                      id="audio-upload"
+                      accept="audio/*"
+                      hidden
+                    />
+                  </label>
+                </div>
+
+                <p class="latency" id="audio-latency">
+                  Latencia estimada: -- ms
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna derecha: salida -->
+          <div class="column column-right">
+            <div class="card predictions-card">
+              <h3>Predicción Top-1</h3>
+              <div class="top1">
+                <span id="audio-top1-label" class="top1-label">–</span>
+                <span id="audio-top1-percent" class="top1-percent">– %</span>
+              </div>
+            </div>
+
+            <div class="card predictions-card">
+              <h3>Top-3 clases</h3>
+              <div id="audio-top3-list" class="top3-list">
+                <!-- Se rellena dinámicamente desde app.js -->
+              </div>
+            </div>
+
+            <div class="card about-card">
+              <div class="about-header">
+                <h3>Acerca del modelo</h3>
+                <div class="badges">
+                  <span class="badge badge-tf">TensorFlow + Colab</span>
+                  <span class="badge badge-input">Micrófono</span>
+                  <span class="badge badge-input">Archivo de ejemplo</span>
+                </div>
+              </div>
+              <p>
+                Este es un modelo de <strong>clasificación de audio</strong> que recibe como entrada
+                el micrófono o un archivo .wav/.mp3. Su objetivo es reconocer el idioma predominante
+                en un clip corto entre <strong>inglés</strong>, <strong>francés</strong>,
+                <strong>español</strong> y <strong>ruso</strong>.
+              </p>
+              <p>
+                El modelo se entrenó con <strong>TensorFlow en Python</strong> usando
+                <strong>Google Colab</strong>, y luego se convirtió a <strong>TensorFlow.js</strong>
+                para ejecutarse en el navegador. Los ejemplos de entrenamiento provienen
+                de grabaciones reales hechas por estudiantes.
+              </p>
+              <p>
+                El desempeño puede verse afectado por <strong>ruido de fondo</strong>,
+                música superpuesta o fragmentos de audio muy cortos. Esta demo se centra en
+                mostrar la idea general y la integración del modelo con la web.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODO: POSTURAS -->
+      <section id="mode-postures" class="mode-panel">
+        <div class="mode-layout">
+          <!-- Columna izquierda: entrada -->
+          <div class="column column-left">
+            <div class="card io-card">
+              <div class="card-header">
+                <h2>Posturas – Acciones tipo pelea/deporte</h2>
+                <p class="card-subtitle">
+                  Usa la webcam para clasificar movimientos como punch, kick, fencing, sword_fight o boxing.
+                </p>
+              </div>
+
+              <div class="io-body">
+                <div class="video-wrapper">
+                  <video id="postures-video" autoplay playsinline muted></video>
+                  <canvas id="postures-canvas"></canvas>
+                  <div class="video-label">Webcam</div>
+                </div>
+
+                <div class="io-actions">
+                  <button id="postures-start-btn" class="btn btn-primary">
+                    Iniciar
+                  </button>
+                  <button id="postures-stop-btn" class="btn">
+                    Detener
+                  </button>
+
+                  <label class="btn btn-ghost">
+                    Subir imagen
+                    <input
+                      type="file"
+                      id="postures-upload"
+                      accept="image/*"
+                      hidden
+                    />
+                  </label>
+                </div>
+
+                <p class="latency" id="postures-latency">
+                  Latencia estimada: -- ms
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna derecha: salida -->
+          <div class="column column-right">
+            <div class="card predictions-card">
+              <h3>Predicción Top-1</h3>
+              <div class="top1">
+                <span id="postures-top1-label" class="top1-label">–</span>
+                <span id="postures-top1-percent" class="top1-percent">– %</span>
+              </div>
+            </div>
+
+            <div class="card predictions-card">
+              <h3>Top-3 clases</h3>
+              <div id="postures-top3-list" class="top3-list">
+                <!-- Se rellena dinámicamente desde app.js -->
+              </div>
+            </div>
+
+            <div class="card about-card">
+              <div class="about-header">
+                <h3>Acerca del modelo</h3>
+                <div class="badges">
+                  <span class="badge badge-teachable">Teachable Machine</span>
+                  <span class="badge badge-input">Webcam</span>
+                  <span class="badge badge-input">Archivo de ejemplo</span>
+                </div>
+              </div>
+              <p>
+                Este es un modelo de <strong>clasificación de posturas y acciones</strong> que utiliza
+                la cámara para detectar movimientos como <strong>punch</strong>, <strong>kick</strong>,
+                <strong>fencing</strong>, <strong>sword_fight</strong> y <strong>boxing</strong>.
+                Está pensado como una demo lúdica/deportiva para practicar IA aplicada a visión.
+              </p>
+              <p>
+                El modelo se entrenó principalmente en <strong>Teachable Machine</strong> con
+                videos e imágenes de estudiantes representando cada movimiento, y luego se exportó
+                a <strong>TensorFlow.js</strong>.
+              </p>
+              <p>
+                Funciona mejor cuando la persona está <strong>bien iluminada</strong> y se ve el cuerpo
+                completo o la parte relevante de la acción. Puede confundirse con posturas muy distintas
+                a las vistas en entrenamiento o con movimientos demasiado rápidos.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <span>AI Lab Multimodal · Demo educativa para estudiantes · Ejecutando modelos en tu navegador 🚀</span>
+    </footer>
+  </div>
+
+  <!-- Lógica de la demo -->
+  <script src="app.js"></script>
+</body>
+</html>
